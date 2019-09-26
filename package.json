@@ -27,5 +27,8 @@
     "dexie": "^2.0.4",
     "js-xxhash": "^1.0.4",
     "sw-power-router": "^0.0.1"
-  }
+  },
+  "files": [
+    "src/*.js"
+  ]
 }
