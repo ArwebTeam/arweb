@@ -45,6 +45,7 @@ module.exports = async (config) => {
   }
 
   return {
-    route: router.route
+    route: router.route,
+    arweave
   }
 }
