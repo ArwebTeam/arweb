@@ -1,6 +1,6 @@
 'use strict'
 
-const Dexie = require('dexie')
+const Dexie = require('dexie').default
 
 class ArweaveCache extends Dexie {
   constructor (name = 'arweaveCache') {

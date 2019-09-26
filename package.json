@@ -2,12 +2,13 @@
   "name": "arweb",
   "version": "0.0.1",
   "description": "Arweb is a module that allows building serverless, dynamic applications upon arweave",
-  "main": "index.js",
+  "main": "src/sw.js",
   "directories": {
     "example": "example"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel example/index.html -p 5233"
   },
   "keywords": [
     "arweave",
@@ -15,5 +16,15 @@
     "web3"
   ],
   "author": "Maciej Krüger <mkg20001@gmail.com>",
-  "license": "MPL-2.0"
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "@babel/core": "^7.0.0-0",
+    "@babel/plugin-transform-runtime": "^7.6.2",
+    "parcel": "2.0.0-alpha.1.1"
+  },
+  "dependencies": {
+    "@hapi/call": "^5.1.1",
+    "dexie": "^2.0.4",
+    "js-xxhash": "^1.0.4"
+  }
 }

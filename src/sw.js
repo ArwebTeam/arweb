@@ -3,6 +3,7 @@
 const ARQL = require('./arql')
 
 const Call = require('@hapi/call')
+const Boom = require('@hapi/boom')
 
 // Create new router
 
@@ -32,15 +33,28 @@ module.exports = async (config) => {
     }
   }
 
-  self.addEventListener('fetch', event => {
-    if (event.request.url.includes(self.location.origin)) {
-      // TODO: handle
+  self.addEventListener('fetch', async (event) => {
+    if (event.request.url.includes(self.location.origin)) { // if we are in SW scope
+      try {
+        const r = router.route(event.request.method, new URL(event.request.url).pathname)
+        return r.route.handler(r)
+      } catch (err) {
+        if (!err.isBoom) {
+          err = Boom.badImplementation(err.toString()) // eslint-disable-line no-ex-assign
+        }
+
+        return new Response(JSON.stringify(err.output.payload), {
+          headers: Object.assign(err.output.headers, {'Content-Type': 'application/json'})
+        })
+      }
     } else {
       event.respondWith(fetch(event.request))
     }
   })
 
   return {
-    addRoute: (...a) => router.add(...a)
+    route: (options, handler) => router.add(options, {
+      handler
+    })
   }
 }
