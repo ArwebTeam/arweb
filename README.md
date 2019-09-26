@@ -1,6 +1,6 @@
 # arweb
 
-Arweb is a module that allows building serverless, dynamic applications upon arweave
+Arweb is a module that allows easily building serverless, dynamic applications upon arweave
 
 # What does it do?
 
