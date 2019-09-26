@@ -1,33 +1,47 @@
 'use strict'
 
-const ARQL = require('./arql')
-const Router = require('sw-power-router')
+global.window = self // hacky hacky patch
 
-module.exports = async (config) => {
-  const arql = new ARQL(self.caches)
+if (global.DEBUG) {
+  global.EVENTLOG = []
 
-  async function emit (event, type, payload) {
-    const client = await self.clients.get(event.clientId)
-    if (client) client.postMessage(JSON.stringify({ type, payload }))
-  }
-
-  async function fetchFromArweave (event, [fullPath, user, service, path, version]) {
-    emit(event, 'arweave:captured', { event, fullPath, user, service, path, version })
-
-    const address = await arql.getUserAddress(user)
-    emit(event, 'arweave:addressFound', { event, address })
-
-    const transactions = await arql.getTransactionsFor(address, service, path, version)
-    emit(event, 'arweave:transactionsFound', { event, transactions })
-
-    if (transactions && transactions.length > 0) {
-      const transaction = transactions[0]
-      emit(event, 'arweave:redirecting', { event, transaction })
-      return arql.get(transaction, path)
+  for (const prop in console) { // eslint-disable-line guard-for-in
+    const o = console[prop].bind(console)
+    console[prop] = (...a) => {
+      global.EVENTLOG.push([Date.now(), prop, a])
+      return o(...a)
     }
   }
+}
+
+const Arweave = require('arweave/web').default
+const Router = require('sw-power-router')
+
+const {schema} = require('./utils')
+
+module.exports = async (config) => {
+  /* Load config */
+
+  const {value, error} = schema.validate(config)
+
+  if (error) {
+    throw error
+  }
+
+  config = value
+
+  /* Init */
+
+  const arweave = Arweave.init(config.arweave)
 
   const router = Router(self)
+
+  if (global.DEBUG) {
+    router.route({
+      method: 'GET',
+      path: '/_debug/evenlog'
+    }, () => global.EVENTLOG)
+  }
 
   return {
     route: router.route
