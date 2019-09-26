@@ -39,8 +39,9 @@ module.exports = async (config) => {
   if (global.DEBUG) {
     router.route({
       method: 'GET',
-      path: '/_debug/evenlog'
-    }, () => global.EVENTLOG)
+      path: '/_debug/eventlog',
+      handler: () => global.EVENTLOG
+    })
   }
 
   return {

@@ -28,7 +28,7 @@
     "arweave": "^1.4.1",
     "dexie": "^2.0.4",
     "js-xxhash": "^1.0.4",
-    "sw-power-router": "^0.0.1"
+    "sw-power-router": "^0.0.2"
   },
   "files": [
     "src/*.js"
