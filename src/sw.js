@@ -1,7 +1,7 @@
 'use strict'
 
 const ARQL = require('./arql')
-const Router = require('./sw-route')
+const Router = require('sw-power-router')
 
 module.exports = async (config) => {
   const arql = new ARQL(self.caches)

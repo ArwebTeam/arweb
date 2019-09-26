@@ -3,6 +3,8 @@
 const B64js = 'base64-js'
 const {xxHash32} = require('js-xxhash')
 const ArweaveCache = require('./cache')
+const Mimos = require('@hapi/mimos')
+const mimos = new Mimos()
 
 // Helpers
 function b64UrlEncode (b64UrlString) {
@@ -30,16 +32,6 @@ async function ownerToAddress (owner) {
 const hashTextEncoder = new TextEncoder()
 function hash (string) {
   return xxHash32(hashTextEncoder.encode(string), 0).toString(16)
-}
-
-const mimetypes = {
-  html: 'text/html',
-  css: 'text/css',
-  js: 'text/javascript',
-  json: 'application/json',
-  jpg: 'image/jpeg',
-  png: 'image/png',
-  svg: 'image/svg+xml'
 }
 
 class ArweaveShim {
@@ -84,8 +76,7 @@ class ArweaveShim {
   }
 
   getMimeType (path) {
-    const ext = path.substr(path.lastIndexOf('.') + 1)
-    return mimetypes[ext] || 'text/plain'
+    return mimos.path(path).type
   }
 
   async get (id, path) {
@@ -100,7 +91,7 @@ class ArweaveShim {
     return typedRes
   }
 
-  async getUserAddress (alias) {
+  /* async getUserAddress (alias) {
     const cachedAlias = await this.db.aliases.where({alias}).first()
     if (cachedAlias) return cachedAlias.address
 
@@ -174,7 +165,7 @@ class ArweaveShim {
     }
 
     return this.arQL(query)
-  }
+  } */
 }
 
 module.exports = ArweaveShim

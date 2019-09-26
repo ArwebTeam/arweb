@@ -18,13 +18,14 @@
   "author": "Maciej Krüger <mkg20001@gmail.com>",
   "license": "MPL-2.0",
   "devDependencies": {
-    "@babel/core": "^7.0.0-0",
+    "@babel/core": "^7.6.2",
     "@babel/plugin-transform-runtime": "^7.6.2",
     "parcel": "2.0.0-alpha.1.1"
   },
   "dependencies": {
-    "@hapi/call": "^5.1.1",
+    "@hapi/mimos": "^4.1.1",
     "dexie": "^2.0.4",
-    "js-xxhash": "^1.0.4"
+    "js-xxhash": "^1.0.4",
+    "sw-power-router": "^0.0.1"
   }
 }
