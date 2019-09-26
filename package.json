@@ -1,0 +1,19 @@
+{
+  "name": "arweb",
+  "version": "0.0.1",
+  "description": "Arweb is a module that allows building serverless, dynamic applications upon arweave",
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "arweave",
+    "serverless",
+    "web3"
+  ],
+  "author": "Maciej Krüger <mkg20001@gmail.com>",
+  "license": "MPL-2.0"
+}

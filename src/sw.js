@@ -2,7 +2,13 @@
 
 const ARQL = require('./arql')
 
+const Call = require('@hapi/call')
+
+// Create new router
+
 module.exports = async (config) => {
+  const router = new Call.Router()
+
   const arql = new ARQL(self.caches)
 
   async function emit (event, type, payload) {
@@ -35,6 +41,6 @@ module.exports = async (config) => {
   })
 
   return {
-    // TODO: add url handler functions
+    addRoute: (...a) => router.add(...a)
   }
 }
