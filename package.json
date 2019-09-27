@@ -25,6 +25,7 @@
   "dependencies": {
     "@hapi/joi": "^16.1.4",
     "@hapi/mimos": "^4.1.1",
+    "arlang": "^0.1.0",
     "arweave": "^1.4.1",
     "dexie": "^2.0.4",
     "js-xxhash": "^1.0.4",

@@ -26,9 +26,4 @@ arweb.sw({
     mainBlock: 'BLOCKID'
   } */
 }).then(a => {
-  a.route({
-    method: 'GET',
-    path: '/{asset?}',
-    handler: (...a) => a
-  })
 })

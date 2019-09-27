@@ -44,6 +44,14 @@ module.exports = async (config) => {
     })
   }
 
+  const staticProvider = await config.static.provider(config.static.config, arweave)
+
+  router.route({
+    method: 'GET',
+    path: '/{asset*}',
+    handler: staticProvider
+  })
+
   return {
     route: router.route,
     arweave
