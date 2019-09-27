@@ -4,7 +4,9 @@
 
 global.DEBUG = true
 
-require('..')({
+const arweb = require('..')
+
+arweb.sw({
   app: {
     id: 'io.mkg20001.arweave-example'
   },
@@ -12,7 +14,14 @@ require('..')({
     host: 'arweave.net',
     port: 443,
     protocol: 'https'
-  }/*,
+  },
+  static: {
+    provider: arweb.static.arweave,
+    config: {
+
+    }
+  }
+  /*,
   api: {
     mainBlock: 'BLOCKID'
   } */

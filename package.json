@@ -2,7 +2,7 @@
   "name": "arweb",
   "version": "0.0.1",
   "description": "Arweb is a module that allows easily building serverless, dynamic applications upon arweave",
-  "main": "src/sw.js",
+  "main": "src/index.js",
   "directories": {
     "example": "example"
   },

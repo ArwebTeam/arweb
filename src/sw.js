@@ -6,8 +6,8 @@ if (global.DEBUG) {
   global.EVENTLOG = []
 
   for (const prop in console) { // eslint-disable-line guard-for-in
-    const o = console[prop].bind(console)
-    console[prop] = (...a) => {
+    const o = console[prop].bind(console) // eslint-disable-line no-console
+    console[prop] = (...a) => { // eslint-disable-line no-console
       global.EVENTLOG.push([Date.now(), prop, a])
       return o(...a)
     }

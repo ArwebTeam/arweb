@@ -12,6 +12,10 @@ const schema = Joi.object({
     protocol: Joi.string(), // TODO: protocol
     timeout: Joi.number(),
     logging: Joi.boolean()
+  }).required(),
+  static: Joi.object({
+    provider: Joi.function().required(),
+    config: Joi.object().default({})
   }).required()
 }).required()
 
