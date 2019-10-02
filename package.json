@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "parcel example/index.html -p 5233"
+    "start": "parcel example/index.html -p 5233",
+    "prebuild": "yarn link arbase && yarn link arbase-crud && cd ../aragon && yarn -s example > ../arweb/example/generated.js"
   },
   "keywords": [
     "arweave",
@@ -23,9 +24,11 @@
     "parcel": "2.0.0-alpha.1.1"
   },
   "dependencies": {
-    "@hapi/joi": "^16.1.4",
+    "@hapi/joi": "^16.1.5",
     "@hapi/mimos": "^4.1.1",
-    "arlang": "^0.1.0",
+    "arbase": "^0.0.2",
+    "arbase-crud": "^0.0.2",
+    "arlang": "^0.1.3",
     "arweave": "^1.4.1",
     "dexie": "^2.0.4",
     "js-xxhash": "^1.0.4",

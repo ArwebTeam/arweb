@@ -26,4 +26,7 @@ arweb.sw({
     mainBlock: 'BLOCKID'
   } */
 }).then(a => {
+  require('./generated')(a).then(() => {
+
+  })
 })
