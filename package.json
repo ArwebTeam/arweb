@@ -28,12 +28,12 @@
     "@hapi/joi": "^16.1.5",
     "@hapi/mimos": "^4.1.1",
     "arbase": "^0.0.2",
-    "arbase-crud": "^0.0.2",
+    "arbase-crud": "^0.0.3",
     "arlang": "^0.1.3",
     "arweave": "^1.4.1",
     "dexie": "^2.0.4",
     "js-xxhash": "^1.0.4",
-    "sw-power-router": "^0.0.2"
+    "sw-power-router": "^0.0.3"
   },
   "files": [
     "src/**/*.js"
