@@ -18,7 +18,8 @@ arweb.sw({
   static: {
     provider: arweb.static.arweave,
     config: {
-
+      address: 'addr',
+      app: 'arweave-example'
     }
   }
   /*,

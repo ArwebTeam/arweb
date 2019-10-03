@@ -24,6 +24,7 @@
     "parcel": "2.0.0-alpha.1.1"
   },
   "dependencies": {
+    "@babel/runtime": "^7.6.2",
     "@hapi/joi": "^16.1.5",
     "@hapi/mimos": "^4.1.1",
     "arbase": "^0.0.2",
@@ -35,6 +36,6 @@
     "sw-power-router": "^0.0.2"
   },
   "files": [
-    "src/*.js"
+    "src/**/*.js"
   ]
 }
