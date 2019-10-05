@@ -10,7 +10,6 @@ module.exports = async (config) => {
   const arql = await caches.open('arweaveARQL')
 
   const makeUrl = (url) => `${config.protocol}://${config.host}:${config.port}/${url}`
-  const doFetch = (url, conf) => fetch(makeUrl(url), conf)
   const makeRequest = (url, conf) => new Request(makeUrl(url), conf)
   const postJSON = (data) => {
     return {
@@ -24,9 +23,22 @@ module.exports = async (config) => {
   }
 
   return {
-    arql: async (query) => fetchJSONFallbackCache(
-      makeRequest('arql', postJSON(query)),
-      arql),
+    arql: async (query) => {
+      let {data, req, res, isFresh} = fetchJSONFallbackCache(
+        makeRequest('arql', postJSON(query)),
+        arql)
+
+      if (data && isFresh) {
+        await arql.put(req, res)
+      } else if (!data) {
+        data = []
+      }
+
+      return {
+        data,
+        live: isFresh
+      }
+    },
 
     ar: a.ar,
     wallets: {
@@ -38,10 +50,32 @@ module.exports = async (config) => {
     createTransaction: a.createTransaction.bind(a),
     transactions: {
       sign: a.transactions.sign.bind(a),
-      get: async (id) => fetchJSONCache(
-        makeRequest(`tx/${id}`),
-        TXIDs
-      )
+      get: async (id) => {
+        const {req, res, data} = fetchJSONCache(
+          makeRequest(`tx/${id}`),
+          TXIDs,
+          true
+        )
+
+        if (res.statusCode === 200 && data && data.id === id) {
+          await TXIDs.put(req, res)
+          return new Transaction(data)
+        }
+
+        if (res.statusCode === 202) {
+          throw new ArweaveError(ArweaveErrorType.TX_PENDING)
+        }
+
+        if (res.statusCode === 404) {
+          throw new ArweaveError(ArweaveErrorType.TX_NOT_FOUND)
+        }
+
+        if (res.statusCode === 410) {
+          throw new ArweaveError(ArweaveErrorType.TX_FAILED)
+        }
+
+        throw new ArweaveError(ArweaveErrorType.TX_INVALID)
+      }
     }
   }
 }
