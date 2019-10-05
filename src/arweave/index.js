@@ -3,6 +3,9 @@
 const Arweave = require('arweave/web').default
 const {fetchJSONCache, fetchJSONFallbackCache} = require('./cache')
 
+const Transaction = require('arweave/web/lib/transaction').default
+const ArweaveError = require('arweave/web/lib/error').default
+
 module.exports = async (config) => {
   const a = Arweave.init(config)
 
@@ -63,18 +66,18 @@ module.exports = async (config) => {
         }
 
         if (res.statusCode === 202) {
-          throw new ArweaveError(ArweaveErrorType.TX_PENDING)
+          throw new ArweaveError('TX_PENDING')
         }
 
         if (res.statusCode === 404) {
-          throw new ArweaveError(ArweaveErrorType.TX_NOT_FOUND)
+          throw new ArweaveError('TX_NOT_FOUND')
         }
 
         if (res.statusCode === 410) {
-          throw new ArweaveError(ArweaveErrorType.TX_FAILED)
+          throw new ArweaveError('TX_FAILED')
         }
 
-        throw new ArweaveError(ArweaveErrorType.TX_INVALID)
+        throw new ArweaveError('TX_INVALID')
       }
     }
   }
