@@ -16,7 +16,10 @@ const schema = Joi.object({
   static: Joi.object({
     provider: Joi.function().required(),
     config: Joi.object().default({})
-  }).required()
+  }).required(),
+  api: Joi.object({
+    prefix: Joi.string().default('/api')
+  }).default({prefix: '/api'})
 }).required()
 
 module.exports = {

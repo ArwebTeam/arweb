@@ -14,8 +14,9 @@ if (global.DEBUG) {
   }
 }
 
-const Arweave = require('arweave/web').default
 const Router = require('sw-power-router')
+const Arweave = require('./arweave')
+const arweaveControl = require('./control')
 
 const {schema} = require('./utils')
 
@@ -31,8 +32,7 @@ module.exports = async (config) => {
   config = value
 
   /* Init */
-
-  const arweave = Arweave.init(config.arweave)
+  const arweave = Arweave(config.arweave)
 
   const router = Router(self)
 
@@ -52,8 +52,12 @@ module.exports = async (config) => {
     handler: staticProvider
   })
 
-  return {
+  const a = {
     route: router.route,
     arweave
   }
+
+  arweaveControl(a, config.api.prefix)
+
+  return a
 }
