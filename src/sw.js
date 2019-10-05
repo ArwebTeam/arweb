@@ -2,6 +2,11 @@
 
 global.window = self // hacky hacky patch
 
+if (module.hot) {
+  global.window.location = {reload: () => true}
+  window.location = {reload: () => true}
+}
+
 if (global.DEBUG) {
   global.EVENTLOG = []
 
@@ -32,9 +37,12 @@ module.exports = async (config) => {
   config = value
 
   /* Init */
-  const arweave = Arweave(config.arweave)
 
+  // must be loaded first, to apply fetch event
   const router = Router(self)
+
+  // load arweave cache shim
+  const arweave = await Arweave(config.arweave)
 
   if (global.DEBUG) {
     router.route({

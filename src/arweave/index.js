@@ -45,14 +45,14 @@ module.exports = async (config) => {
 
     ar: a.ar,
     wallets: {
-      generate: a.wallets.generate.bind(a),
-      jwkToAddress: a.wallets.jwkToAddress.bind(a)
+      generate: a.wallets.generate.bind(a.wallets),
+      jwkToAddress: a.wallets.jwkToAddress.bind(a.wallets)
 
     },
 
     createTransaction: a.createTransaction.bind(a),
     transactions: {
-      sign: a.transactions.sign.bind(a),
+      sign: a.transactions.sign.bind(a.transactions),
       get: async (id) => {
         const {req, res, data} = fetchJSONCache(
           makeRequest(`tx/${id}`),
