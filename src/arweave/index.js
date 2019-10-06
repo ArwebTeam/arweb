@@ -31,6 +31,8 @@ module.exports = async (config) => {
         makeRequest('arql', postJSON(query)),
         arql)
 
+      // TODO: integrate arswarm layer
+
       if (data && isFresh) {
         await arql.put(req, res)
       } else if (!data) {
@@ -46,8 +48,15 @@ module.exports = async (config) => {
     ar: a.ar,
     wallets: {
       generate: a.wallets.generate.bind(a.wallets),
-      jwkToAddress: a.wallets.jwkToAddress.bind(a.wallets)
-
+      jwkToAddress: a.wallets.jwkToAddress.bind(a.wallets),
+      getBalance: async (address) => {
+        const res = await fetch(makeRequest(`wallet/${address}/balance`))
+        return res.text()
+      },
+      getLastTransactionID: async (address) => {
+        const res = await fetch(makeRequest(`wallet/${address}/last_tx`))
+        return res.text()
+      }
     },
 
     createTransaction: a.createTransaction.bind(a),

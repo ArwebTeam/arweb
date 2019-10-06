@@ -44,6 +44,20 @@ async function fetchJSONFallbackCache (req, cache, explicit) {
   }
 }
 
+async function fetchVanillaFallbackCache (req, cache, explicit) {
+  let res = await fetchFallbackCache(req, cache)
+
+  const data = await res.text()
+
+  return {
+    data,
+    req,
+    res,
+    isFresh: !res.isFromCache,
+    isCached: res.isFromCache
+  }
+}
+
 async function fetchJSONCache (req, cache) {
   let res = await fetchCache(req, cache)
 
@@ -54,10 +68,22 @@ async function fetchJSONCache (req, cache) {
   }
 }
 
+async function fetchVanillaCache (req, cache) {
+  let res = await fetchCache(req, cache)
+
+  return {
+    data: await res.text(),
+    req,
+    res
+  }
+}
+
 module.exports = {
   fetchCache,
+  fetchVanillaCache,
   fetchJSONCache,
 
   fetchFallbackCache,
+  fetchVanillaFallbackCache,
   fetchJSONFallbackCache
 }

@@ -65,7 +65,7 @@ module.exports = async (config) => {
     arweave
   }
 
-  arweaveControl(a, config.api.prefix)
+  await arweaveControl(a, config.api.prefix)
 
   return a
 }
