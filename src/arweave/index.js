@@ -27,7 +27,7 @@ module.exports = async (config) => {
 
   return {
     arql: async (query) => {
-      let {data, req, res, isFresh} = fetchJSONFallbackCache(
+      let {data, req, res, isFresh} = await fetchJSONFallbackCache(
         makeRequest('arql', postJSON(query)),
         arql)
 
@@ -63,7 +63,7 @@ module.exports = async (config) => {
     transactions: {
       sign: a.transactions.sign.bind(a.transactions),
       get: async (id) => {
-        const {req, res, data} = fetchJSONCache(
+        const {req, res, data} = await fetchJSONCache(
           makeRequest(`tx/${id}`),
           TXIDs,
           true

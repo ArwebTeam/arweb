@@ -24,7 +24,7 @@ async function fetchCache (req, cache) {
   let res = await cache.match(req)
 
   if (!res) {
-    res = await fetch(res)
+    res = await fetch(req)
   }
 
   return res
@@ -33,10 +33,22 @@ async function fetchCache (req, cache) {
 async function fetchJSONFallbackCache (req, cache, explicit) {
   let res = await fetchFallbackCache(req, cache)
 
-  const data = await res.json()
+  let data
+  let parseError
+
+  try {
+    data = await res.json()
+  } catch (err) {
+    parseError = err
+
+    if (res.ok) {
+      throw err
+    }
+  }
 
   return {
     data,
+    parseError,
     req,
     res,
     isFresh: !res.isFromCache,
@@ -61,8 +73,22 @@ async function fetchVanillaFallbackCache (req, cache, explicit) {
 async function fetchJSONCache (req, cache) {
   let res = await fetchCache(req, cache)
 
+  let data
+  let parseError
+
+  try {
+    data = await res.json()
+  } catch (err) {
+    parseError = err
+
+    if (res.ok) {
+      throw err
+    }
+  }
+
   return {
-    data: await res.json(),
+    data,
+    parseError,
     req,
     res
   }
