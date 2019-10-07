@@ -2,6 +2,7 @@
 
 const Arweave = require('arweave/web').default
 const {fetchJSONCache, fetchJSONFallbackCache} = require('./cache')
+const KV = require('idb-kv-store')
 
 const Transaction = require('arweave/web/lib/transaction').default
 const ArweaveError = require('arweave/web/lib/error').default
@@ -10,7 +11,7 @@ module.exports = async (config) => {
   const a = Arweave.init(config)
 
   const TXIDs = await caches.open('arweaveTXIDs')
-  const arql = await caches.open('arweaveARQL')
+  const arql = new KV('arql')
 
   const makeUrl = (url) => `${config.protocol}://${config.host}:${config.port}/${url}`
   const makeRequest = (url, conf) => new Request(makeUrl(url), conf)
@@ -27,20 +28,38 @@ module.exports = async (config) => {
 
   return {
     arql: async (query) => {
-      let {data, req, res, isFresh} = await fetchJSONFallbackCache(
-        makeRequest('arql', postJSON(query)),
-        arql)
+      const req = makeRequest('arql', postJSON(query))
+      const key = JSON.stringify(query)
+      let res
+      let _err
+      let isFresh = false
 
-      // TODO: integrate arswarm layer
+      try {
+        let _res = await fetch(req)
+        if (!_res.ok) {
+          throw new Error(_res.statusText)
+        }
+        res = await _res.json()
+        isFresh = true
+      } catch (err) {
+        _err = err
+      }
 
-      if (data && isFresh) {
-        await arql.put(req, res)
-      } else if (!data) {
-        data = []
+      if (_err) {
+        let cached = await arql.get(key)
+        if (!cached) {
+          throw _err
+        }
+
+        res = JSON.parse(cached)
+      } else if (res) {
+        await arql.set(key, JSON.stringify(res))
+      } else if (!_err && !res) {
+        res = []
       }
 
       return {
-        data,
+        data: res,
         live: isFresh
       }
     },
@@ -69,20 +88,20 @@ module.exports = async (config) => {
           true
         )
 
-        if (res.statusCode === 200 && data && data.id === id) {
+        if (res.status === 200 && data && data.id === id) {
           await TXIDs.put(req, res)
           return new Transaction(data)
         }
 
-        if (res.statusCode === 202) {
+        if (res.status === 202) {
           throw new ArweaveError('TX_PENDING')
         }
 
-        if (res.statusCode === 404) {
+        if (res.status === 404) {
           throw new ArweaveError('TX_NOT_FOUND')
         }
 
-        if (res.statusCode === 410) {
+        if (res.status === 410) {
           throw new ArweaveError('TX_FAILED')
         }
 

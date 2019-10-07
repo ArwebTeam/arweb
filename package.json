@@ -35,7 +35,7 @@
     "idb-kv-store": "^4.4.0",
     "itz-caching-time": "^0.1.2",
     "js-xxhash": "^1.0.4",
-    "sw-power-router": "^0.0.5"
+    "sw-power-router": "^0.0.6"
   },
   "files": [
     "src/**/*.js"

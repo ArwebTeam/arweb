@@ -37,7 +37,7 @@ async function fetchJSONFallbackCache (req, cache, explicit) {
   let parseError
 
   try {
-    data = await res.json()
+    data = await res.clone().json()
   } catch (err) {
     parseError = err
 
@@ -59,7 +59,7 @@ async function fetchJSONFallbackCache (req, cache, explicit) {
 async function fetchVanillaFallbackCache (req, cache, explicit) {
   let res = await fetchFallbackCache(req, cache)
 
-  const data = await res.text()
+  const data = await res.clone().text()
 
   return {
     data,
@@ -77,7 +77,7 @@ async function fetchJSONCache (req, cache) {
   let parseError
 
   try {
-    data = await res.json()
+    data = await res.clone().json()
   } catch (err) {
     parseError = err
 
@@ -98,7 +98,7 @@ async function fetchVanillaCache (req, cache) {
   let res = await fetchCache(req, cache)
 
   return {
-    data: await res.text(),
+    data: await res.clone().text(),
     req,
     res
   }
