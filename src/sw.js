@@ -19,9 +19,20 @@ if (global.DEBUG) {
   }
 }
 
-const Router = require('sw-power-router')
 const Arweave = require('./arweave')
+const Router = require('../sw-power-router')
 const arweaveControl = require('./control')
+
+const Defer = () => {
+  const o = {}
+
+  o.p = new Promise((resolve, reject) => {
+    o.resolve = resolve
+    o.reject = reject
+  })
+
+  return o
+}
 
 const {schema} = require('./utils')
 
@@ -40,6 +51,18 @@ module.exports = async (config) => {
 
   // must be loaded first, to apply fetch event
   const router = Router(self)
+
+  const ready = Defer()
+
+  self.addEventListener('install', (event) => {
+    event.waitUntil(ready)
+  })
+
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(ready)
+  })
+
+  /* ASYNC */
 
   // load arweave cache shim
   const arweave = await Arweave(config.arweave)
@@ -62,7 +85,11 @@ module.exports = async (config) => {
 
   const a = {
     route: router.route,
-    arweave
+    arweave,
+    isReady: () => {
+      ready.resolve()
+      self.clients.claim()
+    }
   }
 
   await arweaveControl(a, config.api.prefix)
