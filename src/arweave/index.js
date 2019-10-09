@@ -1,7 +1,7 @@
 'use strict'
 
 const Arweave = require('arweave/web').default
-const {fetchJSONCache, fetchJSONFallbackCache} = require('./cache')
+const { fetchJSONCache, fetchJSONFallbackCache } = require('./cache')
 const KV = require('idb-kv-store')
 
 const Transaction = require('arweave/web/lib/transaction').default

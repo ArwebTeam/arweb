@@ -28,7 +28,7 @@ async function fetchCache (req, cache) {
   return res
 }
 
-async function fetchJSONFallbackCache (req, cache, explicit) {
+async function fetchJSONFallbackCache (req, cache, alwaysCatch) {
   let res = await fetchFallbackCache(req, cache)
 
   let data
@@ -39,7 +39,7 @@ async function fetchJSONFallbackCache (req, cache, explicit) {
   } catch (err) {
     parseError = err
 
-    if (res.ok) {
+    if (res.ok && !alwaysCatch) {
       throw err
     }
   }
@@ -68,7 +68,7 @@ async function fetchVanillaFallbackCache (req, cache, explicit) {
   }
 }
 
-async function fetchJSONCache (req, cache) {
+async function fetchJSONCache (req, cache, alwaysCatch) {
   let res = await fetchCache(req, cache)
 
   let data
@@ -79,7 +79,7 @@ async function fetchJSONCache (req, cache) {
   } catch (err) {
     parseError = err
 
-    if (res.ok) {
+    if (res.ok && !alwaysCatch) {
       throw err
     }
   }
