@@ -1,7 +1,5 @@
 'use strict'
 
-// TODO: only cache success
-
 async function fetchFallbackCache (req, cache) {
   let res
 

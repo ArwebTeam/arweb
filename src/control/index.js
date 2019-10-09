@@ -5,10 +5,10 @@ const Caching = require('itz-caching-time')
 
 module.exports = async ({arweave, route}, prefix) => {
   const conf = new KV('arcontrol')
-  const cache = await Caching({storeAsString: true, storage: new KV('arcontrol.cache')})
+  const cache = await Caching({storage: new KV('arcontrol.cache')})
 
   let account = false
-  let userconf = JSON.parse(await conf.get('userconf') || '{}')
+  let userconf = await conf.get('userconf') || {}
 
   const getAddressInfo = cache.proxy(async (address) => {
     const balanceWinston = await arweave.wallets.getBalance(address)
@@ -85,7 +85,7 @@ module.exports = async ({arweave, route}, prefix) => {
     path: `${prefix}/a/info/config`,
     handler: async (request, h) => {
       const {payload: _config} = request
-      await conf.set('userconf', JSON.stringify(_config))
+      await conf.set('userconf', _config)
       userconf = _config
 
       return {ok: true}

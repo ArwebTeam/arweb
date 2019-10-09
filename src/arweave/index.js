@@ -51,9 +51,9 @@ module.exports = async (config) => {
           throw _err
         }
 
-        res = JSON.parse(cached)
+        res = cached
       } else if (res) {
-        await arql.set(key, JSON.stringify(res))
+        await arql.set(key, res)
       } else if (!_err && !res) {
         res = []
       }
