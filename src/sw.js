@@ -14,7 +14,12 @@ if (global.DEBUG) {
     const o = console[prop].bind(console) // eslint-disable-line no-console
     console[prop] = (...a) => { // eslint-disable-line no-console
       global.EVENTLOG.push([Date.now(), prop, a])
-      return o(...a)
+
+      try {
+        return o(...a)
+      } catch (err) {
+        global.EVENTLLOG.push([Date.now(), 'ERROR', err])
+      }
     }
   }
 }
