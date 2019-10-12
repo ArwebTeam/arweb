@@ -54,18 +54,18 @@ module.exports = async (config) => {
 
   /* Init */
 
+  self.addEventListener('install', (event) => {
+    event.waitUntil(ready.p)
+  })
+
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(ready.p)
+  })
+
   // must be loaded first, to apply fetch event
   const router = Router(self)
 
   const ready = Defer()
-
-  self.addEventListener('install', (event) => {
-    event.waitUntil(ready)
-  })
-
-  self.addEventListener('activate', (event) => {
-    event.waitUntil(ready)
-  })
 
   /* ASYNC */
 
