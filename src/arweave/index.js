@@ -78,9 +78,9 @@ module.exports = async (config) => {
       }
     },
 
-    createTransaction: a.createTransaction.bind(a),
+    createTransaction: a.createTransaction.bind(a), // TODO: create shim transaction
     transactions: {
-      sign: a.transactions.sign.bind(a.transactions),
+      sign: a.transactions.sign.bind(a.transactions), // TODO: shim sign
       get: async (id) => {
         const {req, res, data} = await fetchJSONCache(
           makeRequest(`tx/${id}`),
@@ -106,6 +106,10 @@ module.exports = async (config) => {
         }
 
         throw new ArweaveError('TX_INVALID')
+      },
+      post: async (tx) => { // TODO: append to queue and send afterwards
+        // IDEa: consent interface / large transaction detection
+
       }
     }
   }
