@@ -93,6 +93,14 @@ module.exports = async ({arweave, route}, prefix) => {
   })
 
   route({
+    method: 'GET',
+    path: `${prefix}/a/txqueue`,
+    handler: async (request, h) => {
+      return h.response([])
+    }
+  })
+
+  route({
     method: 'POST',
     path: `${prefix}/a/keyfile`,
     handler: async (request, h) => {
