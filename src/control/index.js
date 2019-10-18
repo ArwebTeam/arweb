@@ -97,7 +97,7 @@ module.exports = async (arweave, {route}, prefix) => {
     method: 'POST',
     path: `${prefix}/a/info/logout`,
     handler: async (request, h) => {
-      await conf.del('keyfile')
+      await conf.remove('keyfile')
       await updateLoginStatus()
 
       return {ok: true}

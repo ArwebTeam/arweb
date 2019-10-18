@@ -31,44 +31,58 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
   const { makeRequest, postJSON } = ShimClient(arweaveConf)
 
   async function process () {
+    let out = {
+      results: [],
+      ok: true
+    }
+
     let anchor
 
     try {
       anchor = await (await fetch(makeRequest('tx_anchor'))).text()
     } catch (err) {
-      return false
+      out.ok = false
+      return out
     }
 
-    const kfs = await db.transaction('kfs').store
     let cursor = await db.transaction('queue').store.openCursor()
 
+    let cs = []
+
     while (cursor) {
-      const {value: {kf, tx: txData}, key} = cursor
-      const jwk = await kfs.get(kf).jwk
+      cs.push({value: cursor.value, key: cursor.key})
+      cursor = await cursor.continue()
+    }
+
+    for (let i = 0; i < cs.length; i++) {
+      const {value: {kf, tx: txData, id}, key} = cs[i]
+      const jwk = (await db.get('kfs', kf)).jwk
 
       try {
-        txData.data = txData.data ? ArweaveUtils.b46UrlToBuffer(txData.data) : null
         txData.last_tx = anchor
 
-        let tx = await orig.createTransaction(txData)
+        let tx = await orig.createTransaction(txData, jwk)
         orig.sign(tx, jwk)
         const res = await orig.post(tx)
 
         console.info(res)
 
         // fin
-        tx = await db.transaction('queue', 'readwrite')
-        tx.store.del(key)
-        await tx.done
+        await db.delete('queue', key)
+        out.results.push([id, tx, res])
       } catch (err) {
-        // TODO: store last error
-        console.error(err)
+        await db.put('queue', {id, kf, tx: txData, err: err.stack, lastAttempt: Date.now()})
+        out.results.push([id, err.stack])
+        out.ok = false
       }
-
-      cursor = await cursor.continue()
     }
 
-    // TODO: cleanup afterwards ONLY on success
+    if (out.ok) { // cleanup everything on success
+      await db.clear('kfs')
+      await db.clear('queue')
+    }
+
+    return out
   }
 
   async function append (tx, jwk, addr) {
@@ -79,12 +93,14 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
       tags: tx.tags,
       target: tx.target || null,
       quantity: tx.quantity && tx.quantity > 0 ? tx.quantity : null,
-      data: tx.data || null,
+      data: tx.data ? ArweaveUtils.b64UrlToBuffer(tx.data) : null,
       reward: tx.reward && tx.reward > 0 ? tx.reward : null
       // ignore signature since dynamic
     }
 
-    await db.add('kfs', {addr, jwk})
+    if (!await db.get('kfs', addr)) {
+      await db.add('kfs', {addr, jwk})
+    }
     // const qid = String(Math.random().replace(/[0.]/g, ''))
     await db.add('queue', {kf: addr, tx})
 
@@ -105,6 +121,14 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
       }
 
       return h.response(res)
+    }
+  })
+
+  route({
+    method: 'GET',
+    path: `${prefix}/a/txqueue/_process`,
+    handler: async (request, h) => {
+      return h.response(await process())
     }
   })
 
@@ -144,7 +168,7 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
     tx.PSEUDO = true
     tx.jwk = jwk
     tx.addr = await arweave.wallets.jwkToAddress(jwk)
-    tx.post = async () => append(tx.toJSON())
+    tx.post = async () => append(tx.toJSON(), tx.jwk, tx.addr)
 
     return tx
   }
@@ -168,5 +192,10 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
     }
 
     return tx._pseudoSigned
+  }
+
+  return {
+    append,
+    process
   }
 }
