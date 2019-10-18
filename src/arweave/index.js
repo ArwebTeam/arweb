@@ -6,6 +6,8 @@ const KV = require('idb-kv-store')
 
 const Transaction = require('arweave/web/lib/transaction').default
 const ArweaveError = require('arweave/web/lib/error').default
+const ArweaveUtils = require('arweave/web/lib/utils')
+const ShimClient = require('./shim-client')
 
 module.exports = async (config) => {
   const a = Arweave.init(config)
@@ -13,18 +15,7 @@ module.exports = async (config) => {
   const TXIDs = await caches.open('arweaveTXIDs')
   const arql = new KV('arql')
 
-  const makeUrl = (url) => `${config.protocol}://${config.host}:${config.port}/${url}`
-  const makeRequest = (url, conf) => new Request(makeUrl(url), conf)
-  const postJSON = (data) => {
-    return {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    }
-  }
+  const { makeRequest, postJSON } = ShimClient(config)
 
   return {
     arql: async (query) => {
@@ -78,9 +69,42 @@ module.exports = async (config) => {
       }
     },
 
-    createTransaction: a.createTransaction.bind(a), // TODO: create shim transaction
+    createTransaction: async (attributes, jwk) => {
+      const from = await a.wallets.jwkToAddress(jwk)
+
+      if (!from) {
+        throw new Error('Not signed-in')
+      }
+
+      const transaction = {}
+
+      Object.assign(transaction, attributes)
+
+      if (!attributes.data && !(attributes.target && attributes.quantity)) {
+        throw new Error(
+          `A new Arweave transaction must have a 'data' value, or 'target' and 'quantity' values.`
+        )
+      }
+
+      transaction._from = from
+
+      if (attributes.data) {
+        if (typeof attributes.data === 'string') {
+          transaction.data = ArweaveUtils.stringToB64Url(attributes.data)
+        }
+        if (attributes.data instanceof Uint8Array) {
+          transaction.data = ArweaveUtils.bufferTob64Url(attributes.data)
+        }
+      }
+
+      return new Transaction(transaction)
+    },
     transactions: {
-      sign: a.transactions.sign.bind(a.transactions), // TODO: shim sign
+      sign: async (tx) => {
+        tx._pseudoSign = true
+
+        return tx
+      },
       get: async (id) => {
         const {req, res, data} = await fetchJSONCache(
           makeRequest(`tx/${id}`),
@@ -108,9 +132,10 @@ module.exports = async (config) => {
         throw new ArweaveError('TX_INVALID')
       },
       post: async (tx) => { // TODO: append to queue and send afterwards
-        // IDEa: consent interface / large transaction detection
-
+        // IDEA: consent interface / large transaction detection
+        return config.txqueue.add(tx.toJSON())
       }
-    }
+    },
+    a
   }
 }

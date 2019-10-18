@@ -3,7 +3,7 @@
 const KV = require('idb-kv-store')
 const Caching = require('itz-caching-time')
 
-module.exports = async ({arweave, route}, prefix) => {
+module.exports = async (arweave, {route}, prefix) => {
   const conf = new KV('arcontrol')
   const cache = await Caching({storage: new KV('arcontrol.cache')})
 
@@ -93,10 +93,13 @@ module.exports = async ({arweave, route}, prefix) => {
   })
 
   route({
-    method: 'GET',
-    path: `${prefix}/a/txqueue`,
+    method: 'POST',
+    path: `${prefix}/a/info/logout`,
     handler: async (request, h) => {
-      return h.response([])
+      await conf.del('keyfile')
+      await updateLoginStatus()
+
+      return {ok: true}
     }
   })
 
@@ -111,4 +114,13 @@ module.exports = async ({arweave, route}, prefix) => {
   })
 
   await updateLoginStatus()
+
+  return {
+    getJWK: async () => {
+      const keyfile = await conf.get('keyfile')
+      if (!keyfile) throw new Error('No keyfile provided')
+      return keyfile
+    },
+    account: () => account
+  }
 }

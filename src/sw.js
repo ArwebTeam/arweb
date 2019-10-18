@@ -8,6 +8,8 @@ if (module.hot) {
 }
 
 if (global.DEBUG) {
+  process.env.DEBUG = '*'
+
   global.EVENTLOG = []
 
   for (const prop in console) { // eslint-disable-line guard-for-in
@@ -26,7 +28,8 @@ if (global.DEBUG) {
 
 const Arweave = require('./arweave')
 const Router = require('../sw-power-router')
-const arweaveControl = require('./control')
+const ArweaveControl = require('./control')
+const TxQueue = require('./control/txqueue')
 
 const Defer = () => {
   const o = {}
@@ -67,11 +70,6 @@ module.exports = async (config) => {
 
   const ready = Defer()
 
-  /* ASYNC */
-
-  // load arweave cache shim
-  const arweave = await Arweave(config.arweave)
-
   if (global.DEBUG) {
     router.route({
       method: 'GET',
@@ -79,6 +77,13 @@ module.exports = async (config) => {
       handler: () => global.EVENTLOG
     })
   }
+
+  /* ASYNC */
+
+  // load arweave cache shim
+  const arweave = await Arweave(config.arweave)
+  const control = await ArweaveControl(arweave, router, config.api.prefix)
+  const txqueue = await TxQueue(config.arweave, router, config.api.prefix, control)
 
   const staticProvider = await config.static.provider(config.static.config, arweave)
 
@@ -96,8 +101,6 @@ module.exports = async (config) => {
       self.clients.claim()
     }
   }
-
-  await arweaveControl(a, config.api.prefix)
 
   return a
 }
