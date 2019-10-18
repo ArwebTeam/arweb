@@ -146,6 +146,7 @@ module.exports = async (config) => {
       },
       post: async (tx) => {
         // TODO: verify if really submitted
+        // TODO: publish to arcache as well
         return (await makeRequest('tx', postJSON(tx.toJSON ? tx.toJSON() : tx))).text()
       }
     },

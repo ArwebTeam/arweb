@@ -72,6 +72,18 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
   }
 
   async function append (tx, jwk, addr) {
+    tx = {
+      // ignore id since sign dependent
+      // ignore last_tx since dynamic
+      owner: tx.owner || null,
+      tags: tx.tags,
+      target: tx.target || null,
+      quantity: tx.quantity && tx.quantity > 0 ? tx.quantity : null,
+      data: tx.data || null,
+      reward: tx.reward && tx.reward > 0 ? tx.reward : null
+      // ignore signature since dynamic
+    }
+
     await db.add('kfs', {addr, jwk})
     // const qid = String(Math.random().replace(/[0.]/g, ''))
     await db.add('queue', {kf: addr, tx})
@@ -88,8 +100,7 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
 
       let cursor = await db.transaction('queue').store.openCursor()
       while (cursor) {
-        res.push(Object.assign({ id: cursor.key }, cursor.value))
-
+        res.push(cursor.value)
         cursor = await cursor.continue()
       }
 
