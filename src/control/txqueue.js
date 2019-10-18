@@ -6,7 +6,7 @@ const Transaction = require('arweave/web/lib/transaction').default
 const ArweaveUtils = require('arweave/web/lib/utils').default
 const ShimClient = require('../arweave/shim-client')
 
-module.exports = async (arweaveConf, arweave, {route}, prefix, control) => {
+module.exports = async (arweaveConf, arweave, {route}, prefix) => {
   const db = await openDB('txqueue', 2, {
     async upgrade (db, oldVersion, newVersion, transaction) {
       await db.createObjectStore('queue')
@@ -38,9 +38,6 @@ module.exports = async (arweaveConf, arweave, {route}, prefix, control) => {
       const {value: {kf, tx: txData}, key} = cursor
       const jwk = await kfs.get(kf)
 
-      delete txData._from
-      delete txData._pseudoSigned
-
       try {
         txData.data = txData.data ? ArweaveUtils.b46UrlToBuffer(txData.data) : null
         txData.last_tx = anchor
@@ -64,13 +61,7 @@ module.exports = async (arweaveConf, arweave, {route}, prefix, control) => {
     }
   }
 
-  async function append (TX) {
-    const addr = await control.account()
-    if (!addr) {
-      throw new Error('Not signed in')
-    }
-    const jwk = await control.getJWK()
-
+  async function append (TX, jwk, addr) {
     let tx = await db.transaction('kfs', 'readwrite')
     tx.store.set(addr, jwk)
     await tx.done
@@ -140,8 +131,8 @@ module.exports = async (arweaveConf, arweave, {route}, prefix, control) => {
     return tx
   }
 
-  arweave.transactions.post = async (tx) => {
-    return append(tx.toJSON ? tx.toJSON() : tx)
+  arweave.transactions.post = async (tx, jwk, addr) => {
+    return append(tx.toJSON ? tx.toJSON() : tx, tx.jwk || jwk, tx.addr || await arweave.wallets.jwkToAddress(tx.jwk || jwk))
   }
 
   arweave.transactions.sign = async (tx) => {

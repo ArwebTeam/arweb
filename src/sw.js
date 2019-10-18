@@ -82,12 +82,8 @@ module.exports = async (config) => {
 
   // load arweave cache shim
   const arweave = await Arweave(config.arweave)
-  const control = await ArweaveControl(arweave, router, config.api.prefix)
-  const txqueue = await TxQueue(config.arweave, arweave, router, config.api.prefix, control)
-  // TODO: make this better
-  arweave.transactions.post = async (tx) => {
-    return txqueue.append(tx.toJSON())
-  }
+  await ArweaveControl(arweave, router, config.api.prefix)
+  await TxQueue(config.arweave, arweave, router, config.api.prefix)
 
   const staticProvider = await config.static.provider(config.static.config, arweave)
 
