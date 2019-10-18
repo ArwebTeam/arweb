@@ -33,6 +33,7 @@ module.exports = async (arweave, {route}, prefix) => {
     */
 
     const keyfile = await conf.get('keyfile')
+    arweave.jwk = keyfile
     const prevAddr = await conf.get('prevaddr')
 
     if (!keyfile) {

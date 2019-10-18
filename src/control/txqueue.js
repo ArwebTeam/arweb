@@ -1,13 +1,16 @@
 'use strict'
 
 const { openDB, deleteDB } = require('idb')
-const ArweaveUtils = require('arweave/web/lib/utils')
+
+const Transaction = require('arweave/web/lib/transaction').default
+const ArweaveUtils = require('arweave/web/lib/utils').default
 const ShimClient = require('../arweave/shim-client')
 
-module.exports = async (arweave, {route}, prefix, control) => {
-  const db = await openDB('txqueue', 1, {
-    upgrade (db, oldVersion, newVersion, transaction) {
-      // …
+module.exports = async (arweaveConf, arweave, {route}, prefix, control) => {
+  const db = await openDB('txqueue', 2, {
+    async upgrade (db, oldVersion, newVersion, transaction) {
+      await db.createObjectStore('queue')
+      await db.createObjectStore('kfs')
     },
     blocked () {
       // …
@@ -17,46 +20,7 @@ module.exports = async (arweave, {route}, prefix, control) => {
     }
   })
 
-  const { makeRequest, postJSON } = ShimClient(arweave)
-
-  async function prepareTxData (attributes, jwk, anchor) {
-    const transaction = {}
-
-    attributes.data = attributes.data ? ArweaveUtils.b46UrlToBuffer(attributes.data) : null
-
-    Object.assign(transaction, attributes)
-
-    if (!attributes.data && !(attributes.target && attributes.quantity)) {
-      throw new Error(
-        `A new Arweave transaction must have a 'data' value, or 'target' and 'quantity' values.`
-      )
-    }
-
-    if (attributes.reward == null) {
-      const data = attributes.data
-      let length
-
-      if (data == null) {
-        length = 0
-      } else if (data instanceof Uint8Array) {
-        length = data.byteLength
-      } else {
-        throw new Error('Expected data to be a Uint8Array')
-      }
-
-      transaction.reward = await (await fetch(makeRequest(transaction.target ? `price/${length}/${transaction.target}` : `price/${length}`))).text()
-    }
-
-    if (attributes.owner == null) {
-      transaction.owner = jwk.n
-    }
-
-    if (attributes.last_tx == null) {
-      transaction.last_tx = anchor
-    }
-
-    return transaction
-  }
+  const { makeRequest, postJSON } = ShimClient(arweaveConf)
 
   async function process () {
     let anchor
@@ -78,11 +42,14 @@ module.exports = async (arweave, {route}, prefix, control) => {
       delete txData._pseudoSigned
 
       try {
-        let tx = await arweave.createTransaction(await prepareTxData(txData, jwk, anchor))
-        const res = await (await fetch(makeRequest('tx', postJSON(tx.toJSON())))).text()
-        console.info(res)
+        txData.data = txData.data ? ArweaveUtils.b46UrlToBuffer(txData.data) : null
+        txData.last_tx = anchor
 
-        // TODO: verify if really submitted
+        let tx = await orig.createTransaction(txData)
+        orig.sign(tx, jwk)
+        const res = await orig.post(tx)
+
+        console.info(res)
 
         // fin
         tx = await db.transaction('queue', 'readwrite')
@@ -95,6 +62,26 @@ module.exports = async (arweave, {route}, prefix, control) => {
 
       cursor = await cursor.continue()
     }
+  }
+
+  async function append (TX) {
+    const addr = await control.account()
+    if (!addr) {
+      throw new Error('Not signed in')
+    }
+    const jwk = await control.getJWK()
+
+    let tx = await db.transaction('kfs', 'readwrite')
+    tx.store.set(addr, jwk)
+    await tx.done
+
+    const qid = String(Math.random().replace(/[0.]/g, ''))
+
+    tx = await db.transaction('queue', 'readwrite')
+    tx.store.set(qid, {kf: addr, tx: TX})
+    await tx.done
+
+    return qid
   }
 
   route({
@@ -114,25 +101,51 @@ module.exports = async (arweave, {route}, prefix, control) => {
     }
   })
 
-  return {
-    append: async (TX) => {
-      const addr = await control.account()
-      if (!addr) {
-        throw new Error('Not signed in')
-      }
-      const jwk = await control.getJWK()
+  const orig = {
+    createTransaction: arweave.createTransaction,
+    post: arweave.transactions.post,
+    sign: arweave.transactions.sign
+  }
 
-      let tx = await db.transaction('kfs', 'readwrite')
-      tx.store.set(addr, jwk)
-      await tx.done
-
-      const qid = String(Math.random().replace(/[0.]/g, ''))
-
-      tx = await db.transaction('queue', 'readwrite')
-      tx.store.set(qid, {kf: addr, tx: TX})
-      await tx.done
-
-      return qid
+  arweave.createTransaction = async (attributes, jwk) => {
+    if (!jwk) {
+      console.warn('No JWK specified, using default')
+      jwk = arweave.jwk
     }
+
+    const transaction = {}
+
+    Object.assign(transaction, attributes)
+
+    if (!attributes.data && !(attributes.target && attributes.quantity)) {
+      throw new Error(
+        `A new Arweave transaction must have a 'data' value, or 'target' and 'quantity' values.`
+      )
+    }
+
+    if (attributes.data) {
+      if (typeof attributes.data === 'string') {
+        transaction.data = ArweaveUtils.stringToB64Url(attributes.data)
+      }
+      if (attributes.data instanceof Uint8Array) {
+        transaction.data = ArweaveUtils.bufferTob64Url(attributes.data)
+      }
+    }
+
+    const tx = new Transaction(transaction)
+    tx.jwk = jwk
+    tx.addr = await arweave.wallets.jwkToAddress(jwk)
+    tx.post = async () => append(tx.toJSON())
+
+    return tx
+  }
+
+  arweave.transactions.post = async (tx) => {
+    return append(tx.toJSON ? tx.toJSON() : tx)
+  }
+
+  arweave.transactions.sign = async (tx) => {
+    tx._pseudoSigned = true
+    return tx
   }
 }
