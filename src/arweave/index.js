@@ -6,7 +6,7 @@ const KV = require('idb-kv-store')
 
 const Transaction = require('arweave/web/lib/transaction').default
 const ArweaveError = require('arweave/web/lib/error').default
-const ArweaveUtils = require('arweave/web/lib/utils').default
+const ArweaveUtils = require('arweave/web/lib/utils')
 const ShimClient = require('./shim-client')
 
 module.exports = async (config) => {

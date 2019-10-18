@@ -3,14 +3,22 @@
 const { openDB, deleteDB } = require('idb')
 
 const Transaction = require('arweave/web/lib/transaction').default
-const ArweaveUtils = require('arweave/web/lib/utils').default
+const ArweaveUtils = require('arweave/web/lib/utils')
 const ShimClient = require('../arweave/shim-client')
 
 module.exports = async (arweaveConf, arweave, {route}, prefix) => {
-  const db = await openDB('txqueue', 2, {
+  const db = await openDB('txqueue', 3, {
     async upgrade (db, oldVersion, newVersion, transaction) {
-      await db.createObjectStore('queue')
-      await db.createObjectStore('kfs')
+      await db.createObjectStore('queue', {
+        // The 'id' property of the object will be the key.
+        keyPath: 'id',
+        // If it isn't explicitly set, create a value by auto incrementing.
+        autoIncrement: true
+      })
+
+      await db.createObjectStore('kfs', {
+        keyPath: 'addr'
+      })
     },
     blocked () {
       // …
@@ -36,7 +44,7 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
 
     while (cursor) {
       const {value: {kf, tx: txData}, key} = cursor
-      const jwk = await kfs.get(kf)
+      const jwk = await kfs.get(kf).jwk
 
       try {
         txData.data = txData.data ? ArweaveUtils.b46UrlToBuffer(txData.data) : null
@@ -59,20 +67,17 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
 
       cursor = await cursor.continue()
     }
+
+    // TODO: cleanup afterwards ONLY on success
   }
 
-  async function append (TX, jwk, addr) {
-    let tx = await db.transaction('kfs', 'readwrite')
-    tx.store.set(addr, jwk)
-    await tx.done
+  async function append (tx, jwk, addr) {
+    await db.add('kfs', {addr, jwk})
+    // const qid = String(Math.random().replace(/[0.]/g, ''))
+    await db.add('queue', {kf: addr, tx})
 
-    const qid = String(Math.random().replace(/[0.]/g, ''))
-
-    tx = await db.transaction('queue', 'readwrite')
-    tx.store.set(qid, {kf: addr, tx: TX})
-    await tx.done
-
-    return qid
+    // TODO: get queue id
+    return '0'
   }
 
   route({
@@ -95,7 +100,8 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
   const orig = {
     createTransaction: arweave.createTransaction,
     post: arweave.transactions.post,
-    sign: arweave.transactions.sign
+    sign: arweave.transactions.sign,
+    verify: arweave.transactions.verify
   }
 
   arweave.createTransaction = async (attributes, jwk) => {
@@ -124,6 +130,7 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
     }
 
     const tx = new Transaction(transaction)
+    tx.PSEUDO = true
     tx.jwk = jwk
     tx.addr = await arweave.wallets.jwkToAddress(jwk)
     tx.post = async () => append(tx.toJSON())
@@ -135,8 +142,20 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
     return append(tx.toJSON ? tx.toJSON() : tx, tx.jwk || jwk, tx.addr || await arweave.wallets.jwkToAddress(tx.jwk || jwk))
   }
 
-  arweave.transactions.sign = async (tx) => {
+  arweave.transactions.sign = async (tx, jwk) => {
+    if (!tx.PSEUDO) {
+      return orig.sign(tx, jwk)
+    }
+
     tx._pseudoSigned = true
     return tx
+  }
+
+  arweave.transactions.verify = async (tx, jwk) => {
+    if (!tx.PSEUDO) {
+      return orig.verify(tx, jwk)
+    }
+
+    return tx._pseudoSigned
   }
 }
