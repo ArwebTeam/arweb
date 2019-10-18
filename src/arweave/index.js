@@ -118,6 +118,7 @@ module.exports = async (config) => {
     },
     transactions: {
       sign: a.transactions.sign.bind(a.transactions),
+      verify: a.transactions.verify.bind(a.transactions),
       get: async (id) => {
         const {req, res, data} = await fetchJSONCache(
           makeRequest(`tx/${id}`),
@@ -145,11 +146,17 @@ module.exports = async (config) => {
         throw new ArweaveError('TX_INVALID')
       },
       post: async (tx) => {
-        // TODO: verify if really submitted
         // TODO: publish to arcache as well
-        return (await makeRequest('tx', postJSON(tx.toJSON ? tx.toJSON() : tx))).text()
+
+        const req = makeRequest('tx', postJSON(tx.toJSON ? tx.toJSON() : tx))
+        const res = await fetch(req)
+        const text = await res.text()
+        if (res.status >= 200 && res.status < 300) {
+          return text
+        } else {
+          throw new Error(`${res.status}: ${text}`)
+        }
       }
-    },
-    a
+    }
   }
 }

@@ -62,7 +62,7 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
         txData.last_tx = anchor
 
         let tx = await orig.createTransaction(txData, jwk)
-        orig.sign(tx, jwk)
+        await orig.sign(tx, jwk)
         const res = await orig.post(tx)
 
         console.info(res)
@@ -96,6 +96,12 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
       data: tx.data ? ArweaveUtils.b64UrlToBuffer(tx.data) : null,
       reward: tx.reward && tx.reward > 0 ? tx.reward : null
       // ignore signature since dynamic
+    }
+
+    for (const key in tx) {
+      if (tx[key] == null) {
+        delete tx[key]
+      }
     }
 
     if (!await db.get('kfs', addr)) {
