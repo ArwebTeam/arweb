@@ -9,7 +9,7 @@ const ArweaveError = require('arweave/web/lib/error').default
 const ArweaveUtils = require('arweave/web/lib/utils')
 const ShimClient = require('./shim-client')
 
-module.exports = async (config) => {
+module.exports = async (config, arswarm) => {
   const a = Arweave.init(config)
 
   const TXIDs = await caches.open('arweaveTXIDs')
@@ -48,6 +48,14 @@ module.exports = async (config) => {
       } else if (!_err && !res) {
         res = []
       }
+
+      // TODO: check if order is correct (swarm is always newest)
+      const swarm = await arswarm.arql(query)
+      swarm.forEach(tx => {
+        if (res.indexOf(tx) === -1) { // add if we don't already have this TX
+          res.push(tx)
+        }
+      })
 
       return {
         data: res,
@@ -125,6 +133,7 @@ module.exports = async (config) => {
           TXIDs,
           true
         )
+        let fromSwarm
 
         if (res.status === 200 && data && data.id === id) {
           await TXIDs.put(req, res)
@@ -132,10 +141,18 @@ module.exports = async (config) => {
         }
 
         if (res.status === 202) {
+          if ((fromSwarm = await arswarm.fetch(id))) {
+            return fromSwarm
+          }
+
           throw new ArweaveError('TX_PENDING')
         }
 
         if (res.status === 404) {
+          if ((fromSwarm = await arswarm.fetch(id))) {
+            return fromSwarm
+          }
+
           throw new ArweaveError('TX_NOT_FOUND')
         }
 
@@ -146,12 +163,13 @@ module.exports = async (config) => {
         throw new ArweaveError('TX_INVALID')
       },
       post: async (tx) => {
-        // TODO: publish to arcache as well
+        const txData = tx.toJSON ? tx.toJSON() : tx
 
-        const req = makeRequest('tx', postJSON(tx.toJSON ? tx.toJSON() : tx))
+        const req = makeRequest('tx', postJSON(txData))
         const res = await fetch(req)
         const text = await res.text()
         if (res.status >= 200 && res.status < 300) {
+          await arswarm.publish(txData)
           return text
         } else {
           throw new Error(`${res.status}: ${text}`)

@@ -27,6 +27,7 @@ if (global.DEBUG) {
 }
 
 const Arweave = require('./arweave')
+const Arswarm = require('arswarm')
 const Router = require('../sw-power-router')
 const ArweaveControl = require('./control')
 const TxQueue = require('./control/txqueue')
@@ -81,7 +82,8 @@ module.exports = async (config) => {
   /* ASYNC */
 
   // load arweave cache shim
-  const arweave = await Arweave(config.arweave)
+  const arswarm = await Arswarm(config.arswarm)
+  const arweave = await Arweave(config.arweave, arswarm)
   await ArweaveControl(arweave, router, config.api.prefix)
   await TxQueue(config.arweave, arweave, router, config.api.prefix)
 
