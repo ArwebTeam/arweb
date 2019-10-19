@@ -164,7 +164,6 @@ module.exports = async (config, arswarm) => {
       },
       post: async (tx) => {
         const txData = tx.toJSON ? tx.toJSON() : tx
-        return arswarm.publish(txData)
 
         const req = makeRequest('tx', postJSON(txData))
         const res = await fetch(req)
