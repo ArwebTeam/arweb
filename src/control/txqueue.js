@@ -74,6 +74,10 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
         await db.put('queue', {id, kf, tx: txData, err: err.stack, lastAttempt: Date.now()})
         out.results.push([id, err.stack])
         out.ok = false
+
+        if (global.DEBUG) {
+          throw err
+        }
       }
     }
 

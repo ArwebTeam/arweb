@@ -13,6 +13,19 @@ const schema = Joi.object({
     timeout: Joi.number(),
     logging: Joi.boolean()
   }).required(),
+  arswarm: Joi.object({
+    cache: Joi.object({
+
+    }).default({}),
+    id: Joi.object({
+      privKey: Joi.string().required(),
+      pubKey: Joi.string(),
+      id: Joi.string()
+    }),
+    swarm: Joi.object({
+      bootstrap: Joi.array().required()
+    }).required()
+  }).required(),
   static: Joi.object({
     provider: Joi.function().required(),
     config: Joi.object().default({})
