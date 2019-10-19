@@ -27,7 +27,7 @@ if (global.DEBUG) {
 }
 
 const Arweave = require('./arweave')
-const Arswarm = require('arswarm')
+const Arswarm = require('arswarm/src/mock')
 const Router = require('../sw-power-router')
 const ArweaveControl = require('./control')
 const TxQueue = require('./control/txqueue')
