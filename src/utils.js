@@ -23,6 +23,7 @@ const schema = Joi.object({
       id: Joi.string()
     }),
     swarm: Joi.object({
+      listen: Joi.array().required(),
       bootstrap: Joi.array().required()
     }).required()
   }).required(),

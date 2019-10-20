@@ -7,6 +7,10 @@ if (module.hot) {
   window.location = {reload: () => true}
 }
 
+if (typeof setImmediate === 'undefined') {
+  global.setImmediate = require('set-immediate-shim')
+}
+
 if (global.DEBUG) {
   process.env.DEBUG = '*'
 

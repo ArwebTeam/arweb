@@ -1,11 +1,19 @@
 'use strict'
 
-const KV = require('idb-kv-store')
+const { openDB } = require('idb')
+const { kv } = require('idb-shared-kv')
 const Caching = require('itz-caching-time')
 
 module.exports = async (arweave, {route}, prefix) => {
-  const conf = new KV('arcontrol')
-  const cache = await Caching({storage: new KV('arcontrol.cache')})
+  const db = await openDB('arcontrol', 1, {
+    upgrade (db, oldVersion, newVersion, transaction) {
+      db.createObjectStore('conf')
+      db.createObjectStore('cache')
+    }
+  })
+
+  const conf = kv(db, 'conf')
+  const cache = await Caching({storage: kv(db, 'cache')})
 
   let account = false
   let userconf = await conf.get('userconf') || {}

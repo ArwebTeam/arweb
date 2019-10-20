@@ -19,12 +19,6 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
       await db.createObjectStore('kfs', {
         keyPath: 'addr'
       })
-    },
-    blocked () {
-      // …
-    },
-    blocking () {
-      // …
     }
   })
 
