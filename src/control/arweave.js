@@ -51,6 +51,8 @@ module.exports = async (arweave, {route}, prefix) => {
 
       account = address
     }
+
+    await conf.set('prevaddr', account)
   }
 
   route({
@@ -105,7 +107,7 @@ module.exports = async (arweave, {route}, prefix) => {
     method: 'POST',
     path: `${prefix}/a/info/logout`,
     handler: async (request, h) => {
-      await conf.remove('keyfile')
+      await conf.delete('keyfile')
       await updateLoginStatus()
 
       return {ok: true}

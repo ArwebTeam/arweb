@@ -28,7 +28,7 @@ module.exports = async (config, arswarm) => {
       try {
         let _res = await fetch(req)
         if (!_res.ok) {
-          throw new Error(_res.statusText)
+          throw new Error(`${_res.status}: ${_res.statusText}`)
         }
         res = await _res.json()
         isFresh = true

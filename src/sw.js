@@ -5,6 +5,12 @@ global.window = self // hacky hacky patch
 if (module.hot) {
   global.window.location = {reload: () => true}
   window.location = {reload: () => true}
+
+  global.localStorage = global.localstorage = {
+    getItem: () => 'ar*,libp2p*',
+    setItem: () => {},
+    removeItem: () => {}
+  }
 }
 
 if (typeof setImmediate === 'undefined') {
@@ -33,7 +39,8 @@ if (global.DEBUG) {
 const Arweave = require('./arweave')
 const Arswarm = require('arswarm/src/mock')
 const Router = require('../sw-power-router')
-const ArweaveControl = require('./control')
+const ArweaveControl = require('./control/arweave')
+const ArswarmControl = require('./control/arswarm')
 const TxQueue = require('./control/txqueue')
 
 const Defer = () => {
@@ -67,7 +74,10 @@ module.exports = async (config) => {
   })
 
   self.addEventListener('activate', (event) => {
-    event.waitUntil(ready.p)
+    event.waitUntil((async () => {
+      await ready.p
+      self.clients.claim()
+    })())
   })
 
   // must be loaded first, to apply fetch event
@@ -87,6 +97,7 @@ module.exports = async (config) => {
 
   // load arweave cache shim
   const arswarm = await Arswarm(config.arswarm)
+  await ArswarmControl(arswarm, router, config.api.prefix)
   const arweave = await Arweave(config.arweave, arswarm)
   await ArweaveControl(arweave, router, config.api.prefix)
   await TxQueue(config.arweave, arweave, router, config.api.prefix)
@@ -104,7 +115,6 @@ module.exports = async (config) => {
     arweave,
     isReady: () => {
       ready.resolve()
-      self.clients.claim()
     }
   }
 
