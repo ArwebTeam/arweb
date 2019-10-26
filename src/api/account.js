@@ -2,8 +2,20 @@
 
 module.exports = (config = {}, {route, user, prefix, arweave}) => {
   route({
+    method: 'GET',
+    path: `${prefix}/a/account`,
+    handler: async (request, h) => {
+      if (user.account.address()) {
+        return user.account.getAddressInfo(user.account.address())
+      } else {
+        return {error: 'No keyfile'}
+      }
+    }
+  })
+
+  route({
     method: 'POST',
-    path: `${prefix}/a/account/login`,
+    path: `${prefix}/a/account`,
     handler: async (request, h) => {
       await user.account.setKeyfile(request.payload)
 
@@ -12,8 +24,8 @@ module.exports = (config = {}, {route, user, prefix, arweave}) => {
   })
 
   route({
-    method: 'POST',
-    path: `${prefix}/a/account/logout`,
+    method: 'DELETE',
+    path: `${prefix}/a/account`,
     handler: async (request, h) => {
       await user.account.setKeyfile(null)
 
