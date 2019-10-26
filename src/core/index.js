@@ -32,6 +32,7 @@ module.exports = async (config) => {
 
   const staticProvider = await config.static.provider(config.static.config, arweave)
 
+  // TODO: provider "user"-like wrapper arround everything, don't expose internals without _ prefix
   const a = {
     arweave,
     user,

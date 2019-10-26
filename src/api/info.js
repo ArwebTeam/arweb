@@ -28,7 +28,7 @@ module.exports = (config = {}, {route, user, prefix, arweave}) => {
 
       // swarm
 
-      // TODO: expose peer-listing apis via user?
+      res.connections = arweave.arswarm.node.peers().length
 
       return res
     }

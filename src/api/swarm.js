@@ -1,29 +1,41 @@
 'use strict'
 
+const Joi = require('@hapi/joi')
+
 module.exports = async (config = {}, {route, arweave, prefix}) => {
-  const node = arweave.arswarm._swarm._node
+  const node = arweave.arswarm.node
 
   route({
     method: 'GET',
     path: `${prefix}/a/swarm/peer`,
     handler: async (request, h) => {
-      return {
-        id: node.peerInfo.id.toB58String(),
-        addrs: node.peerInfo.multiaddrs.toArray().map(String)
-      }
+      return node.peer()
     }
   })
 
   route({
     method: 'GET',
     path: `${prefix}/a/swarm/peers`,
+    validate: {
+      request: {
+        connected: Joi.boolean().default(false)
+      }
+    },
     handler: async (request, h) => {
-      const peers = node.peerBook.getAllArray().map((p) => p.isConnected())
+      return node.peers()
+    }
+  })
 
-      return peers.map(p => ({
-        id: p.id.toB58String(),
-        addr: p.multiaddrs.toArray().map(String)
-      }))
+  route({
+    method: 'POST',
+    path: `${prefix}/a/swarm/connect`,
+    validate: {
+      payload: Joi.string().required()
+    },
+    handler: async (request, h) => {
+      await node.connect(request.payload)
+
+      return {ok: true}
     }
   })
 
