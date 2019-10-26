@@ -26,7 +26,7 @@ module.exports = async (config) => {
   // TODO: make arswarm a plugin instead
   const arweave = await Arweave(config.arweave, arswarm)
   // TODO: add via plugin api
-  arweave.txqueue = await TxQueue(config.arweave, arweave)
+  arweave.txqueue = await TxQueue(config.arweave, arweave, arswarm)
 
   const user = await User(config.user, { arweave })
 

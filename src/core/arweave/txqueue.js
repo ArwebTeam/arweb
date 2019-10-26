@@ -5,8 +5,12 @@ const { openDB } = require('idb')
 const Transaction = require('arweave/web/lib/transaction').default
 const ArweaveUtils = require('arweave/web/lib/utils')
 const ShimClient = require('./shim-client')
+const Lock = require('itz-locking-time')
 
-module.exports = async (arweaveConf, arweave) => {
+const TID = () => String(Math.random()).replace(/[0.]/gmi, '')
+
+module.exports = async (arweaveConf, arweave, arswarm) => {
+  const lock = Lock()
   const db = await openDB('txqueue', 3, {
     async upgrade (db, oldVersion, newVersion, transaction) {
       await db.createObjectStore('queue', {
@@ -23,6 +27,10 @@ module.exports = async (arweaveConf, arweave) => {
   })
 
   const { makeRequest } = ShimClient(arweaveConf)
+
+  function flush () {
+    return lock.runNext('process', process)
+  }
 
   async function process () {
     let out = {
@@ -49,15 +57,21 @@ module.exports = async (arweaveConf, arweave) => {
     }
 
     for (let i = 0; i < cs.length; i++) {
-      const {value: {kf, tx: txData, id}, key} = cs[i]
+      let {value: {kf, tx: txData, id}, key} = cs[i]
       const jwk = (await db.get('kfs', kf)).jwk
 
       try {
+        const tid = txData.id
+
+        txData = Object.assign({}, txData)
+
         txData.last_tx = anchor
+        delete txData.id
 
         let tx = await orig.createTransaction(txData, jwk)
         await orig.sign(tx, jwk)
         const res = await orig.post(tx)
+        await arswarm._cache.del(tid)
 
         console.info(res)
 
@@ -84,6 +98,19 @@ module.exports = async (arweaveConf, arweave) => {
   }
 
   async function append (tx, jwk, addr) {
+    let txLocal = {
+      // ignore id since sign dependent
+      // ignore last_tx since dynamic
+      owner: tx.owner || null,
+      tags: tx.tags,
+      target: tx.target || null,
+      quantity: tx.quantity && tx.quantity > 0 ? tx.quantity : null,
+      data: tx.data,
+      reward: tx.reward && tx.reward > 0 ? tx.reward : null,
+      // ignore signature since dynamic
+      id: TID() // TID is used for adding the TX to arswarm before flushing tx queue
+    }
+
     tx = {
       // ignore id since sign dependent
       // ignore last_tx since dynamic
@@ -107,9 +134,11 @@ module.exports = async (arweaveConf, arweave) => {
     }
     // const qid = String(Math.random().replace(/[0.]/g, ''))
     await db.add('queue', {kf: addr, tx})
+    await arswarm._cache.addLocal(txLocal)
 
-    // TODO: get queue id
-    return '0'
+    flush() // bg
+
+    return txLocal.id // TID
   }
 
   const orig = {
@@ -154,6 +183,10 @@ module.exports = async (arweaveConf, arweave) => {
   }
 
   arweave.transactions.post = async (tx, jwk, addr) => {
+    if (!tx.PSEUDO) {
+      return orig.post(tx)
+    }
+
     return append(tx.toJSON ? tx.toJSON() : tx, tx.jwk || jwk, tx.addr || await arweave.wallets.jwkToAddress(tx.jwk || jwk))
   }
 
@@ -177,6 +210,7 @@ module.exports = async (arweaveConf, arweave) => {
   return {
     append,
     process,
+    flush,
     list: async () => {
       let res = []
 

@@ -140,19 +140,15 @@ module.exports = async (config, arswarm) => {
           return new Transaction(data)
         }
 
-        if (res.status === 202) {
-          if ((fromSwarm = await arswarm.fetch(id))) {
-            return fromSwarm
-          }
+        if ((fromSwarm = await arswarm.fetch(id))) {
+          return fromSwarm
+        }
 
+        if (res.status === 202) {
           throw new ArweaveError('TX_PENDING')
         }
 
         if (res.status === 404) {
-          if ((fromSwarm = await arswarm.fetch(id))) {
-            return fromSwarm
-          }
-
           throw new ArweaveError('TX_NOT_FOUND')
         }
 
