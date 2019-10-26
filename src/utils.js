@@ -33,7 +33,13 @@ const schema = Joi.object({
   }).required(),
   api: Joi.object({
     prefix: Joi.string().default('/api')
-  }).default({prefix: '/api'})
+  }).default({prefix: '/api'}),
+  user: Joi.object({
+    profile: Joi.object({
+      provider: Joi.function().required()
+    }).required(),
+    account: Joi.object({}).default({})
+  }).required()
 }).required()
 
 module.exports = {

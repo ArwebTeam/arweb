@@ -36,12 +36,15 @@ if (global.DEBUG) {
   }
 }
 
+const Arswarm = require('arswarm/src')
+
 const Arweave = require('./arweave')
-const Arswarm = require('arswarm/src/mock')
-const Router = require('../sw-power-router')
-const ArweaveControl = require('./control/arweave')
-const ArswarmControl = require('./control/arswarm')
-const TxQueue = require('./control/txqueue')
+const TxQueue = require('./arweave/txqueue')
+
+const User = require('./user')
+const API = require('./api')
+
+const Router = require('sw-power-router')
 
 const Defer = () => {
   const o = {}
@@ -95,12 +98,15 @@ module.exports = async (config) => {
 
   /* ASYNC */
 
-  // load arweave cache shim
+  // TODO: make arswarm plugin
   const arswarm = await Arswarm(config.arswarm)
-  await ArswarmControl(arswarm, router, config.api.prefix)
+  // TODO: refactor as plugins
   const arweave = await Arweave(config.arweave, arswarm)
-  await ArweaveControl(arweave, router, config.api.prefix)
-  await TxQueue(config.arweave, arweave, router, config.api.prefix)
+  arweave.txqueue = await TxQueue(config.arweave, arweave)
+
+  const user = await User(config.user, { arweave })
+
+  await API(config.api, { user, arweave, router })
 
   const staticProvider = await config.static.provider(config.static.config, arweave)
 
@@ -113,6 +119,7 @@ module.exports = async (config) => {
   const a = {
     route: router.route,
     arweave,
+    user,
     isReady: () => {
       ready.resolve()
     }

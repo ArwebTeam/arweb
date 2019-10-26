@@ -175,6 +175,7 @@ module.exports = async (config, arswarm) => {
           throw new Error(`${res.status}: ${text}`)
         }
       }
-    }
+    },
+    arswarm
   }
 }

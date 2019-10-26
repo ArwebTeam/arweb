@@ -1,12 +1,12 @@
 'use strict'
 
-const { openDB, deleteDB } = require('idb')
+const { openDB } = require('idb')
 
 const Transaction = require('arweave/web/lib/transaction').default
 const ArweaveUtils = require('arweave/web/lib/utils')
-const ShimClient = require('../arweave/shim-client')
+const ShimClient = require('./shim-client')
 
-module.exports = async (arweaveConf, arweave, {route}, prefix) => {
+module.exports = async (arweaveConf, arweave) => {
   const db = await openDB('txqueue', 3, {
     async upgrade (db, oldVersion, newVersion, transaction) {
       await db.createObjectStore('queue', {
@@ -22,7 +22,7 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
     }
   })
 
-  const { makeRequest, postJSON } = ShimClient(arweaveConf)
+  const { makeRequest } = ShimClient(arweaveConf)
 
   async function process () {
     let out = {
@@ -112,30 +112,6 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
     return '0'
   }
 
-  route({
-    method: 'GET',
-    path: `${prefix}/a/txqueue`,
-    handler: async (request, h) => {
-      let res = []
-
-      let cursor = await db.transaction('queue').store.openCursor()
-      while (cursor) {
-        res.push(cursor.value)
-        cursor = await cursor.continue()
-      }
-
-      return h.response(res)
-    }
-  })
-
-  route({
-    method: 'GET',
-    path: `${prefix}/a/txqueue/_process`,
-    handler: async (request, h) => {
-      return h.response(await process())
-    }
-  })
-
   const orig = {
     createTransaction: arweave.createTransaction,
     post: arweave.transactions.post,
@@ -200,6 +176,17 @@ module.exports = async (arweaveConf, arweave, {route}, prefix) => {
 
   return {
     append,
-    process
+    process,
+    list: async () => {
+      let res = []
+
+      let cursor = await db.transaction('queue').store.openCursor()
+      while (cursor) {
+        res.push(cursor.value)
+        cursor = await cursor.continue()
+      }
+
+      return res
+    }
   }
 }
