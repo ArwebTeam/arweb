@@ -36,12 +36,7 @@ if (global.DEBUG) {
   }
 }
 
-const Arswarm = require('arswarm/src')
-
-const Arweave = require('./arweave')
-const TxQueue = require('./arweave/txqueue')
-
-const User = require('./user')
+const Core = require('./core')
 const API = require('./api')
 
 const Router = require('sw-power-router')
@@ -98,32 +93,23 @@ module.exports = async (config) => {
 
   /* ASYNC */
 
-  // TODO: make arswarm plugin
-  const arswarm = await Arswarm(config.arswarm)
-  // TODO: refactor as plugins
-  const arweave = await Arweave(config.arweave, arswarm)
-  arweave.txqueue = await TxQueue(config.arweave, arweave)
+  const core = await Core(config)
 
-  const user = await User(config.user, { arweave })
-
-  await API(config.api, { user, arweave, router })
-
-  const staticProvider = await config.static.provider(config.static.config, arweave)
+  await API(core.api, core)
 
   router.route({
     method: 'GET',
     path: '/{asset*}',
-    handler: staticProvider
+    handler: core.staticProvider
   })
 
-  const a = {
-    route: router.route,
-    arweave,
-    user,
-    isReady: () => {
+  core.isReady = (err) => {
+    if (err) {
+      ready.reject(err)
+    } else {
       ready.resolve()
     }
   }
 
-  return a
+  return core
 }
