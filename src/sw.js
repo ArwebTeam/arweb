@@ -95,14 +95,7 @@ module.exports = async (config) => {
 
   const core = await Core(config)
 
-  await API(core.api, core)
-
-  router.route({
-    method: 'GET',
-    path: '/{asset*}',
-    handler: core.staticProvider
-  })
-
+  // TODO: split core and shell
   core.isReady = (err) => {
     if (err) {
       ready.reject(err)
@@ -110,6 +103,19 @@ module.exports = async (config) => {
       ready.resolve()
     }
   }
+  // TODO: provide middleware/plugin API to arweb instead
+  // TODO: create "fluid" js API & HTTP API alongside
+  core.router = router
+
+  /* API */
+
+  await API(core.api, core)
+
+  router.route({
+    method: 'GET',
+    path: '/{asset*}',
+    handler: core.staticProvider
+  })
 
   return core
 }

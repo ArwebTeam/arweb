@@ -7,7 +7,7 @@ const TxQueue = require('./arweave/txqueue')
 
 const User = require('./user')
 
-const {schema} = require('./utils')
+const {schema} = require('../utils')
 
 module.exports = async (config) => {
   /* Load config */
