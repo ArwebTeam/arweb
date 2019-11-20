@@ -2,6 +2,9 @@
 
 const { openDB } = require('idb')
 
+const debug = require('debug')
+const log = debug('arweb:txqueue')
+
 const Transaction = require('arweave/web/lib/transaction').default
 const ArweaveUtils = require('arweave/web/lib/utils')
 const ShimClient = require('./shim-client')
@@ -29,10 +32,13 @@ module.exports = async (arweaveConf, arweave, arswarm) => {
   const { makeRequest } = ShimClient(arweaveConf)
 
   function flush () {
+    log('run next flush')
     return lock.runNext('process', process)
   }
 
   async function process () {
+    log('running process')
+
     let out = {
       results: [],
       ok: true
@@ -44,6 +50,7 @@ module.exports = async (arweaveConf, arweave, arswarm) => {
       anchor = await (await fetch(makeRequest('tx_anchor'))).text()
     } catch (err) {
       out.ok = false
+      log('failed loading anchor')
       return out
     }
 
@@ -57,6 +64,8 @@ module.exports = async (arweaveConf, arweave, arswarm) => {
     }
 
     for (let i = 0; i < cs.length; i++) {
+      log('processing %o', i)
+
       let {value: {kf, tx: txData, id}, key} = cs[i]
       const jwk = (await db.get('kfs', kf)).jwk
 
@@ -78,7 +87,9 @@ module.exports = async (arweaveConf, arweave, arswarm) => {
         // fin
         await db.delete('queue', key)
         out.results.push([id, tx, res])
+        log('success %o', id)
       } catch (err) {
+        log(err)
         await db.put('queue', {id, kf, tx: txData, err: err.stack, lastAttempt: Date.now()})
         out.results.push([id, err.stack])
         out.ok = false
@@ -105,10 +116,14 @@ module.exports = async (arweaveConf, arweave, arswarm) => {
       tags: tx.tags,
       target: tx.target || null,
       quantity: tx.quantity && tx.quantity > 0 ? tx.quantity : null,
-      data: tx.data,
+      data: tx.data || null,
       reward: tx.reward && tx.reward > 0 ? tx.reward : null,
       // ignore signature since dynamic
       id: TID() // TID is used for adding the TX to arswarm before flushing tx queue
+    }
+
+    for (const p in txLocal) {
+      if (!txLocal[p]) { delete txLocal[p] }
     }
 
     tx = {
@@ -119,8 +134,9 @@ module.exports = async (arweaveConf, arweave, arswarm) => {
       target: tx.target || null,
       quantity: tx.quantity && tx.quantity > 0 ? tx.quantity : null,
       data: tx.data ? ArweaveUtils.b64UrlToBuffer(tx.data) : null,
-      reward: tx.reward && tx.reward > 0 ? tx.reward : null
+      reward: tx.reward && tx.reward > 0 ? tx.reward : null,
       // ignore signature since dynamic
+      id: TID() // TID is used for adding the TX to arswarm before flushing tx queue
     }
 
     for (const key in tx) {
@@ -138,7 +154,7 @@ module.exports = async (arweaveConf, arweave, arswarm) => {
 
     flush() // bg
 
-    return txLocal.id // TID
+    return tx.id // TID
   }
 
   const orig = {
